@@ -52,9 +52,7 @@ export const registerUser = asyncHandler(async (req, res) => {
         for (const key in error.errors) {
             validationErrors.push(error.errors[key].message);
         }
-        return res.status(400).json(
-            new ApiResponse(400, null, validationErrors.join(', '))
-        );
+        throw new ApiError(400, validationErrors.join(', '));
     }
 
     await user.save()

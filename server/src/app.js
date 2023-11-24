@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-
+import errorMiddleware from './middlewares/error.middleware.js'
 
 const app = express();
 
@@ -21,4 +21,13 @@ import userRoutes from './routes/user.routes.js'
 
 app.use("/api/v1/user", userRoutes)
 
+app.all("*", (req, res) => {
+    res.status(404).json({
+        status: 404,
+        success: false,
+        message: "!oops page not found"
+    })
+})
+
+app.use(errorMiddleware)
 export default app
