@@ -19,30 +19,11 @@ export const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with this email or username already exists")
     }
 
-
-    if (!req.files.avatar) {
-        throw new ApiError(400, "avatar is required")
-    }
-
-    const avatarLocalPath = req.files && req.files.avatar && req.files.avatar[0].path;
-    const coverImagePath = req.files && req.files.coverImage && req.files.coverImage[0].path;
-
-    const avatarImage = await uploadFiles(avatarLocalPath)
-    const coverImage = await uploadFiles(coverImagePath)
-
     const user = new User({
         userName,
         fullName,
         email,
-        password,
-        avatar: {
-            public_id: avatarImage?.public_id,
-            secure_url: avatarImage?.secure_url
-        },
-        coverImage: {
-            public_id: coverImage?.public_id,
-            secure_url: coverImage?.secure_url
-        }
+        password
     })
 
     try {
@@ -54,6 +35,21 @@ export const registerUser = asyncHandler(async (req, res) => {
         }
         throw new ApiError(400, validationErrors.join(', '));
     }
+
+    if (!req.files.avatar) {
+        throw new ApiError(400, "avatar is required")
+    }
+    const avatarLocalPath = req.files.avatar[0].path;
+    const coverImagePath = req.files && req.files.coverImage && req.files.coverImage[0].path;
+    const avatarImage = await uploadFiles(avatarLocalPath)
+    const coverImage = await uploadFiles(coverImagePath)
+
+    user.avatar.public_id = avatarImage?.public_id
+    user.avatar.secure_url = avatarImage?.secure_url
+
+    user.coverImage.public_id = coverImage?.public_id
+    user.coverImage.secure_url = coverImage?.secure_url
+
 
     await user.save()
     user.password = undefined
