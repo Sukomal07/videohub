@@ -19,12 +19,13 @@ export const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with this email or username already exists")
     }
 
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImagePath = req.files?.coverImage[0]?.path;
 
-    if (!avatarLocalPath) {
+    if (!req.files.avatar) {
         throw new ApiError(400, "avatar is required")
     }
+
+    const avatarLocalPath = req.files && req.files.avatar && req.files.avatar[0].path;
+    const coverImagePath = req.files && req.files.coverImage && req.files.coverImage[0].path;
 
     const avatarImage = await uploadFiles(avatarLocalPath)
     const coverImage = await uploadFiles(coverImagePath)

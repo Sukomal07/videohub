@@ -43,7 +43,7 @@ const userSchema = new Schema({
             type: String
         }
     },
-    covarImage: {
+    coverImage: {
         public_id: {
             type: String
         },
