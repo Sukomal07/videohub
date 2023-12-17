@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose'
 import JWT from 'jsonwebtoken'
-import bcryctJs from 'bcryptjs'
+import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
 const userSchema = new Schema({
@@ -66,12 +66,12 @@ userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
         return next();
     }
-    this.password = await bcryctJs.hash(this.password, 10);
+    this.password = await bcrypt.hash(this.password, 10);
 })
 
 userSchema.methods = {
     isPasswordCorrect: async function (password) {
-        return await bcryctJs.compare(password, this.password);
+        return await bcrypt.compare(password, this.password);
     },
     generateAccessToken: async function () {
         return JWT.sign({
