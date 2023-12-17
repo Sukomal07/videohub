@@ -85,6 +85,10 @@ export const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "username or email is required")
     }
 
+    if (!password) {
+        throw new ApiError(400, 'password is required')
+    }
+
     const user = await User.findOne({
         $or: [{ userName }, { email }]
     }).select("+password")
@@ -120,7 +124,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
         req.user._id,
         {
             $set: {
-                refreshToken: undefined
+                refreshToken: ''
             }
         },
         {
