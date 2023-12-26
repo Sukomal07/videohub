@@ -1,5 +1,5 @@
 import express from 'express'
-import { loginUser, logoutUser, refreshAccessToken, registerUser } from '../controllers/user.controller.js'
+import { changePassword, deleteAccount, getProfile, loginUser, logoutUser, refreshAccessToken, registerUser, updateImages, updateProfile } from '../controllers/user.controller.js'
 import { upload } from '../middlewares/multer.middleware.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 
@@ -9,5 +9,9 @@ router.post('/signup', upload.fields([{ name: "avatar", maxCount: 1 }, { name: "
 router.post('/login', loginUser)
 router.post('/logout', verifyJWT, logoutUser)
 router.post('/refresh-token', refreshAccessToken)
-
+router.put('/change-password', verifyJWT, changePassword)
+router.get('/profile', verifyJWT, getProfile)
+router.put('/update-profile', verifyJWT, updateProfile)
+router.put('/update-images', verifyJWT, upload.fields([{ name: "avatar", maxCount: 1 }, { name: "coverImage", maxCount: 1 }]), updateImages)
+router.delete('/delete-profile', verifyJWT, deleteAccount)
 export default router
