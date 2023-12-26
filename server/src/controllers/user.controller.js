@@ -308,3 +308,77 @@ export const deleteAccount = asyncHandler(async (req, res) => {
         new ApiResponse(200, '', "Profile deleted successfully")
     )
 })
+
+export const getChannelProfile = asyncHandler(async (req, res) => {
+    const { userName } = req.params
+
+    if (!userName) {
+        throw new ApiError(401, "username is required")
+    }
+
+    const channel = await User.aggregate([
+        //match all documents with username
+        {
+            $match: {
+                userName: userName
+            }
+        },
+        // find channels subscribers
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        // find user subscribed other channels
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        // add fields in user documents
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelSubscribed: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {
+                            $in: [req.user?._id, "$subscribers.subscriber"]
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                userName: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscribersCount: 1,
+                channelSubscribed: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+
+    if (!channel?.length) {
+        throw new ApiError(404, "channel does not exist")
+    }
+
+    res.status(200).json(
+        new ApiResponse(200, channel[0], "Channel fetched successfully")
+    )
+})
