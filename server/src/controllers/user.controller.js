@@ -5,6 +5,7 @@ import { uploadFiles } from '../utils/cloudinary.js'
 import { v2 } from 'cloudinary'
 import User from "../models/user.model.js";
 import JWT from 'jsonwebtoken'
+import mongoose from "mongoose";
 
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
@@ -235,6 +236,22 @@ export const updateProfile = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User does not exist");
     }
 
+    const existingUser = await User.findOne({
+        $or: [
+            { email: req.body?.email },
+            { userName: req.body?.userName }
+        ]
+    });
+
+    if (existingUser) {
+        if (existingUser.email === req.body?.email) {
+            throw new ApiError(400, "Email is already in use");
+        }
+        if (existingUser.userName === req.body?.userName) {
+            throw new ApiError(400, "Username is already in use");
+        }
+    }
+
     for (const key in req.body) {
         user[key] = req.body[key];
     }
@@ -380,5 +397,53 @@ export const getChannelProfile = asyncHandler(async (req, res) => {
 
     res.status(200).json(
         new ApiResponse(200, channel[0], "Channel fetched successfully")
+    )
+})
+
+export const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        userName: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    res.status(200).json(
+        new ApiResponse(200, user[0].watchHistory, "watch history fetched successfully")
     )
 })
