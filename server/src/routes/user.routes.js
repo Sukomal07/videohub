@@ -9,10 +9,10 @@ router.post('/signup', upload.fields([{ name: "avatar", maxCount: 1 }, { name: "
 router.post('/login', loginUser)
 router.post('/logout', verifyJWT, logoutUser)
 router.post('/refresh-token', refreshAccessToken)
-router.put('/change-password', verifyJWT, changePassword)
+router.patch('/change-password', verifyJWT, changePassword)
 router.get('/profile', verifyJWT, getProfile)
-router.put('/update-profile', verifyJWT, updateProfile)
-router.put('/update-images', verifyJWT, upload.fields([{ name: "avatar", maxCount: 1 }, { name: "coverImage", maxCount: 1 }]), updateImages)
+router.patch('/update-profile', verifyJWT, updateProfile)
+router.patch('/update-images', verifyJWT, upload.fields([{ name: "avatar", maxCount: 1 }, { name: "coverImage", maxCount: 1 }]), updateImages)
 router.delete('/delete-profile', verifyJWT, deleteAccount)
 router.get('/channel/:userName', getChannelProfile)
 export default router
