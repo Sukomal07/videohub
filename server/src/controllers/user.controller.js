@@ -310,9 +310,9 @@ export const deleteAccount = asyncHandler(async (req, res) => {
 })
 
 export const getChannelProfile = asyncHandler(async (req, res) => {
-    const { userName } = req.params
+    const { username } = req.params
 
-    if (!userName) {
+    if (!username) {
         throw new ApiError(401, "username is required")
     }
 
@@ -320,16 +320,16 @@ export const getChannelProfile = asyncHandler(async (req, res) => {
         //match all documents with username
         {
             $match: {
-                userName: userName
+                userName: username
             }
         },
-        // find channels subscribers
+        // find channels subscribers . lookup stage connect to collections
         {
             $lookup: {
-                from: "subscriptions",
-                localField: "_id",
-                foreignField: "channel",
-                as: "subscribers"
+                from: "subscriptions", // from which collection we want to add
+                localField: "_id",  // current collection field that will help to find in collection which we want to add
+                foreignField: "channel", // in from collection field , that field name match localField
+                as: "subscribers" // name or result array that will add in current collection document
             }
         },
         // find user subscribed other channels
