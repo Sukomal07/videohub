@@ -15,11 +15,12 @@ app.use(cookieParser())
 
 // import routes
 import userRoutes from './routes/user.routes.js'
-
+import channelRoutes from './routes/channel.routes.js'
 
 //routes config
 
 app.use("/api/v1/user", userRoutes)
+app.use("/api/v1/channel", channelRoutes)
 
 app.all("*", (req, res) => {
     res.status(404).json({
