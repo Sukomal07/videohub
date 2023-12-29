@@ -18,21 +18,23 @@ const videoSchema = new Schema({
         trim: true
     },
     videoFile: {
-        required: [true, 'Video is required'],
         public_id: {
-            type: String
+            type: String,
+            required: true
         },
         secure_url: {
-            type: String
+            type: String,
+            required: true
         }
     },
     thumbnail: {
-        required: [true, 'Thumbnail is required'],
         public_id: {
-            type: String
+            type: String,
+            required: true
         },
         secure_url: {
-            type: String
+            type: String,
+            required: true
         }
     },
     owner: {
