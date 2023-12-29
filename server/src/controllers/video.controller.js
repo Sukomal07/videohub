@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadFiles } from "../utils/cloudinary.js";
+import { v2 } from "cloudinary";
 
 export const uploadNewVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
@@ -58,5 +59,35 @@ export const uploadNewVideo = asyncHandler(async (req, res) => {
 
     res.status(201).json(
         new ApiResponse(201, video, 'Video upload successfully')
+    )
+})
+
+export const deleteVideo = asyncHandler(async (req, res) => {
+    const userId = req.user?._id
+    const { videoId } = req.params
+
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(400, 'No video found')
+    }
+
+    if (!video.owner.equals(userId)) {
+        throw new ApiError(400, 'You are not allowed');
+    }
+
+    try {
+        await v2.uploader.destroy(video.thumbnail?.public_id, {
+            resource_type: 'image'
+        })
+        await v2.uploader.destroy(video.videoFile?.public_id, {
+            resource_type: 'video'
+        })
+    } catch (error) {
+        throw new ApiError(400, 'Failed to delete video')
+    }
+
+    await Video.findByIdAndDelete(videoId)
+    res.status(200).json(
+        new ApiResponse(200, '', 'Video deleted successfully')
     )
 })
