@@ -26,7 +26,6 @@ export const uploadNewVideo = asyncHandler(async (req, res) => {
     }
     try {
         uploadedVideoFile = await uploadFiles(localVideoPath)
-        console.log(uploadedVideoFile);
     } catch (error) {
         throw new ApiError(400, 'video upload failed')
     }
