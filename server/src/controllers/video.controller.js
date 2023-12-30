@@ -1,4 +1,5 @@
 import Video from "../models/video.model.js";
+import User from "../models/user.model.js"
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -74,6 +75,12 @@ export const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'You are not allowed');
     }
 
+    const user = await User.findById(userId)
+    if (user && user.watchHistory.includes(videoId)) {
+        user.watchHistory = user.watchHistory.filter(id => id !== videoId)
+        await user.save()
+    }
+
     try {
         await v2.uploader.destroy(video.thumbnail?.public_id, {
             resource_type: 'image'
@@ -89,4 +96,39 @@ export const deleteVideo = asyncHandler(async (req, res) => {
     res.status(200).json(
         new ApiResponse(200, '', 'Video deleted successfully')
     )
+})
+
+export const getAllVideo = asyncHandler(async (req, res) => {
+    const videos = await Video.aggregate([
+        { $match: { isPublished: true } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'ownerInfo'
+            }
+        },
+        {
+            $unwind: '$ownerInfo'
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                videoFile: 1,
+                thumbnail: 1,
+                views: 1,
+                duration: 1,
+                createdAt: 1,
+                owner: 1,
+                ownerName: '$ownerInfo.fullName',
+                ownerAvatar: '$ownerInfo.avatar',
+            }
+        }
+    ]);
+
+    res.status(200).json(
+        new ApiResponse(200, videos, 'Published videos')
+    );
 })
