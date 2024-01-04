@@ -2,7 +2,7 @@ import express from 'express'
 import { getChannelProfile } from '../controllers/channel.controller.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 import { upload } from '../middlewares/multer.middleware.js'
-import { deleteVideo, getAllVideo, getVideoById, uploadNewVideo } from '../controllers/video.controller.js'
+import { deleteVideo, disLikeVideo, getAllVideo, getVideoById, likeVideo, uploadNewVideo } from '../controllers/video.controller.js'
 
 const router = express.Router()
 
@@ -11,4 +11,7 @@ router.post('/new/upload', verifyJWT, upload.fields([{ name: "videoFile", maxCou
 router.delete('/video/delete/:videoId', verifyJWT, deleteVideo)
 router.get('/videos', getAllVideo)
 router.get('/video/:videoId', getVideoById)
+router.post('/video/:videoId/like', verifyJWT, likeVideo)
+router.post('/video/:videoId/dislike', verifyJWT, disLikeVideo)
+
 export default router

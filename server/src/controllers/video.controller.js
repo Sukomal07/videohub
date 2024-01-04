@@ -247,11 +247,69 @@ export const getVideoById = asyncHandler(async (req, res) => {
         }
     ]);
 
-    console.log(videoDetails);
-
     if (videoDetails.length === 0) {
         throw new ApiError(404, 'Video not found');
     }
 
     res.status(200).json(new ApiResponse(200, videoDetails[0], 'Video fetched successfully'));
+})
+
+export const likeVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user?._id;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, 'Video not found');
+    }
+
+    const existingLike = await Like.findOne({ video: videoId, likedBy: userId });
+    const existingDislike = await DisLike.findOne({ video: videoId, disLikedBy: userId });
+
+    if (existingLike) {
+        await existingLike.deleteOne({ _id: existingLike._id })
+        res.status(200).json(new ApiResponse(200, '', 'Video like removed'));
+    } else {
+        if (existingDislike) {
+            await existingDislike.deleteOne({ _id: existingDislike._id });
+        }
+        const newLike = new Like({
+            video: videoId,
+            likedBy: userId,
+        });
+
+        await newLike.save();
+
+        res.status(201).json(new ApiResponse(201, newLike, 'Video liked successfully'));
+    }
+})
+
+export const disLikeVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user?._id;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, 'Video not found');
+    }
+
+    const existingLike = await Like.findOne({ video: videoId, likedBy: userId });
+    const existingDislike = await DisLike.findOne({ video: videoId, disLikedBy: userId });
+
+    if (existingDislike) {
+        await existingDislike.deleteOne({ _id: existingDislike._id });
+        res.status(200).json(new ApiResponse(200, '', 'Video dislike removed'));
+    } else {
+        if (existingLike) {
+            await existingLike.deleteOne({ _id: existingLike._id });
+        }
+        const newDisLike = new DisLike({
+            video: videoId,
+            disLikedBy: userId
+        });
+
+        await newDisLike.save();
+
+        res.status(201).json(new ApiResponse(201, newDisLike, 'Video disliked successfully'));
+    }
 })
