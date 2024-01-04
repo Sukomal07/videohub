@@ -144,6 +144,7 @@ export const getAllVideo = asyncHandler(async (req, res) => {
 
 export const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
+    const userId = req.user?._id;
     const videoDetails = await Video.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
         {
@@ -251,6 +252,14 @@ export const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(404, 'Video not found');
     }
 
+    if (userId) {
+        await User.findByIdAndUpdate(userId, {
+            $push: {
+                watchHistory: videoId
+            }
+        }, { new: true });
+    }
+
     res.status(200).json(new ApiResponse(200, videoDetails[0], 'Video fetched successfully'));
 })
 
@@ -312,4 +321,29 @@ export const disLikeVideo = asyncHandler(async (req, res) => {
 
         res.status(201).json(new ApiResponse(201, newDisLike, 'Video disliked successfully'));
     }
+})
+
+export const commentOnVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const { content } = req.body;
+    const userId = req.user?._id;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, 'Video not found');
+    }
+
+    if (!content) {
+        throw new ApiError(400, "comment is required");
+    }
+
+    const newComment = new Comment({
+        content,
+        video: videoId,
+        owner: userId,
+    });
+
+    await newComment.save();
+
+    res.status(201).json(new ApiResponse(201, newComment, 'Comment added successfully'));
 })
