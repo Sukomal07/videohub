@@ -352,3 +352,48 @@ export const commentOnVideo = asyncHandler(async (req, res) => {
 
     res.status(201).json(new ApiResponse(201, newComment, 'Comment added successfully'));
 })
+
+export const editComment = asyncHandler(async (req, res) => {
+    const { commentId, videoId } = req.params;
+    const { content } = req.body;
+    const userId = req.user?._id;
+
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+        throw new ApiError(404, 'Comment not found');
+    }
+
+    if (!comment.owner.equals(userId)) {
+        throw new ApiError(403, 'You are not allowed to edit this comment');
+    }
+
+    if (!comment.video.equals(videoId)) {
+        throw new ApiError(403, 'Comment does not belong to the this video');
+    }
+
+    comment.content = content;
+
+    await comment.save();
+
+    res.status(200).json(
+        new ApiResponse(200, comment, 'Comment edit successfully')
+    );
+})
+
+export const deleteComment = asyncHandler(async (req, res) => {
+    const { commentId, videoId } = req.params;
+    const userId = req.user?._id;
+
+    const deletedComment = await Comment.findOneAndDelete({
+        _id: commentId,
+        owner: userId,
+        video: videoId,
+    });
+
+    if (!deletedComment) {
+        throw new ApiError(404, 'Comment not found or you are not allowed to delete this comment');
+    }
+
+    res.status(200).json(new ApiResponse(200, '', 'Comment deleted successfully'));
+})
