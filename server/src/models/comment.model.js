@@ -3,8 +3,7 @@ import { Schema, model } from 'mongoose'
 const commentSchema = new Schema({
     content: {
         type: String,
-        required: [true, 'comment is required'],
-        lowercase: true
+        required: [true, 'comment is required']
     },
     video: {
         type: Schema.Types.ObjectId,
