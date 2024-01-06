@@ -9,6 +9,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadFiles } from "../utils/cloudinary.js";
 import { v2 } from "cloudinary";
 import mongoose from 'mongoose';
+import JWT from "jsonwebtoken";
 
 export const uploadNewVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
@@ -144,7 +145,7 @@ export const getAllVideo = asyncHandler(async (req, res) => {
 
 export const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const userId = req.user?._id;
+
     const videoDetails = await Video.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
         {
@@ -251,13 +252,17 @@ export const getVideoById = asyncHandler(async (req, res) => {
     if (videoDetails.length === 0) {
         throw new ApiError(404, 'Video not found');
     }
-
-    if (userId) {
-        await User.findByIdAndUpdate(userId, {
-            $push: {
-                watchHistory: videoId
-            }
-        }, { new: true });
+    const token = req.cookies?.accessToken
+    if (token) {
+        const userDetails = await JWT.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        const { _id } = userDetails
+        if (_id) {
+            await User.findByIdAndUpdate(_id, {
+                $push: {
+                    watchHistory: videoId
+                }
+            }, { new: true });
+        }
     }
 
     res.status(200).json(new ApiResponse(200, videoDetails[0], 'Video fetched successfully'));
