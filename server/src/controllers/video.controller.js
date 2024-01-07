@@ -246,12 +246,15 @@ export const getVideoById = asyncHandler(async (req, res) => {
                 dislikeCount: 1,
                 totalCommentCount: 1,
             },
-        }
+        },
     ]);
 
     if (videoDetails.length === 0) {
         throw new ApiError(404, 'Video not found');
     }
+
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+
     const token = req.cookies?.accessToken
     if (token) {
         const userDetails = await JWT.verify(token, process.env.ACCESS_TOKEN_SECRET)
