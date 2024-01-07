@@ -67,47 +67,6 @@ export const uploadNewVideo = asyncHandler(async (req, res) => {
     )
 })
 
-export const deleteVideo = asyncHandler(async (req, res) => {
-    const userId = req.user?._id;
-    const { videoId } = req.params;
-
-    const video = await Video.findById(videoId);
-    if (!video) {
-        throw new ApiError(400, 'No video found');
-    }
-
-    if (!video.owner.equals(userId)) {
-        throw new ApiError(400, 'You are not allowed');
-    }
-
-    const user = await User.findById(userId);
-    if (user && user.watchHistory.includes(videoId)) {
-        user.watchHistory = user.watchHistory.filter((id) => id !== videoId);
-        await user.save();
-    }
-
-    try {
-        await v2.uploader.destroy(video.thumbnail?.public_id, {
-            resource_type: 'image',
-        });
-        await v2.uploader.destroy(video.videoFile?.public_id, {
-            resource_type: 'video',
-        });
-    } catch (error) {
-        throw new ApiError(400, 'Failed to delete video');
-    }
-
-    await Promise.all([
-        Comment.deleteMany({ video: videoId }),
-        Like.deleteMany({ video: videoId }),
-        DisLike.deleteMany({ video: videoId }),
-    ]);
-
-    await Video.findByIdAndDelete(videoId);
-
-    res.status(200).json(new ApiResponse(200, '', 'Video deleted successfully'));
-})
-
 export const getAllVideo = asyncHandler(async (req, res) => {
     const videos = await Video.aggregate([
         { $match: { isPublished: true } },
@@ -269,6 +228,119 @@ export const getVideoById = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(new ApiResponse(200, videoDetails[0], 'Video fetched successfully'));
+})
+
+export const updateVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const userId = req.user?._id
+
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(404, 'video not found');
+    }
+
+    if (!video.owner.equals(userId)) {
+        throw new ApiError(400, 'You are not allowed')
+    }
+
+    for (const key in req.body) {
+        video[key] = req.body[key];
+    }
+
+    if (req.file) {
+        let uploadedThumbnail;
+        const localThumbnailPath = req.file.path
+        try {
+            await v2.uploader.destroy(video.thumbnail?.public_id, {
+                resource_type: 'image'
+            })
+            uploadedThumbnail = await uploadFiles(localThumbnailPath)
+        } catch (error) {
+            throw new ApiError(400, 'thumbnail upload failed')
+        }
+        video.thumbnail.public_id = uploadedThumbnail?.public_id
+        video.thumbnail.secure_url = uploadedThumbnail?.secure_url
+    }
+
+    try {
+        await video.validate()
+    } catch (error) {
+        const validationErrors = [];
+        for (const key in error.errors) {
+            validationErrors.push(error.errors[key].message);
+        }
+        throw new ApiError(400, validationErrors.join(', '));
+    }
+    await video.save()
+
+    res.status(200).json(
+        new ApiResponse(200, video, 'video updated successfully')
+    )
+})
+
+export const deleteVideo = asyncHandler(async (req, res) => {
+    const userId = req.user?._id;
+    const { videoId } = req.params;
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(400, 'No video found');
+    }
+
+    if (!video.owner.equals(userId)) {
+        throw new ApiError(400, 'You are not allowed');
+    }
+
+    const user = await User.findById(userId);
+    if (user && user.watchHistory.includes(videoId)) {
+        user.watchHistory = user.watchHistory.filter((id) => id !== videoId);
+        await user.save();
+    }
+
+    try {
+        await v2.uploader.destroy(video.thumbnail?.public_id, {
+            resource_type: 'image',
+        });
+        await v2.uploader.destroy(video.videoFile?.public_id, {
+            resource_type: 'video',
+        });
+    } catch (error) {
+        throw new ApiError(400, 'Failed to delete video');
+    }
+
+    await Promise.all([
+        Comment.deleteMany({ video: videoId }),
+        Like.deleteMany({ video: videoId }),
+        DisLike.deleteMany({ video: videoId }),
+    ]);
+
+    await Video.findByIdAndDelete(videoId);
+
+    res.status(200).json(new ApiResponse(200, '', 'Video deleted successfully'));
+})
+
+export const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const userId = req.user?._id
+
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(400, 'No video found');
+    }
+
+    if (!video.owner.equals(userId)) {
+        throw new ApiError(400, 'You are not allowed');
+    }
+
+    video.isPublished = !(video.isPublished)
+
+    await video.save()
+
+    res.status(200).json(
+        new ApiResponse(200, '', 'Video visibility changed')
+    )
 })
 
 export const likeVideo = asyncHandler(async (req, res) => {
