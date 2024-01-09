@@ -94,7 +94,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 
     const user = await User.findOne({
         $or: [{ userName }, { email }]
-    }).select("+password")
+    }).select("+password").select("-watchHistory")
 
     if (!user) {
         throw new ApiError(404, "User does not exists")
@@ -365,6 +365,16 @@ export const getWatchHistory = asyncHandler(async (req, res) => {
                         }
                     }
                 ]
+            }
+        },
+        {
+            $addFields: {
+                watchHistory: { $reverseArray: "$watchHistory" }
+            }
+        },
+        {
+            $project: {
+                watchHistory: 1
             }
         }
     ])
