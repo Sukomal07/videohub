@@ -3,6 +3,7 @@ import Video from "../models/video.model.js"
 import { ApiError } from "../utils/apiError.js"
 import { ApiResponse } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
+import mongoose from 'mongoose'
 
 export const getChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params
@@ -270,4 +271,82 @@ export const getAllFollowings = asyncHandler(async (req, res) => {
     res.status(200).json(
         new ApiResponse(200, channel[0].followings, 'followings fetched successfully')
     )
+})
+
+export const getChannelStats = asyncHandler(async (req, res) => {
+    const channelStats = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $lookup: {
+                from: 'videos',
+                localField: '_id',
+                foreignField: 'owner',
+                as: 'videos'
+            }
+        },
+        {
+            $lookup: {
+                from: 'subscriptions',
+                localField: '_id',
+                foreignField: 'channel',
+                as: 'subscribers'
+            }
+        },
+        {
+            $lookup: {
+                from: 'likes',
+                localField: '_id',
+                foreignField: 'likedBy',
+                as: 'likes'
+            }
+        },
+        {
+            $lookup: {
+                from: 'dislikes',
+                localField: '_id',
+                foreignField: 'disLikedBy',
+                as: 'dislikes'
+            }
+        },
+        {
+            $addFields: {
+                totalVideoViews: {
+                    $sum: '$videos.views'
+                },
+                totalSubscribers: {
+                    $size: '$subscribers'
+                },
+                totalVideos: {
+                    $size: '$videos'
+                },
+                totalLikes: {
+                    $size: '$likes'
+                },
+                totalDislikes: {
+                    $size: '$dislikes'
+                }
+            }
+        },
+        {
+            $project: {
+                totalVideoViews: 1,
+                totalSubscribers: 1,
+                totalVideos: 1,
+                totalLikes: 1,
+                totalDislikes: 1
+            }
+        }
+    ]);
+
+    if (!channelStats.length) {
+        throw new ApiError(404, 'Channel not found');
+    }
+
+    res.status(200).json(
+        new ApiResponse(200, channelStats[0], 'Channel stats fetched successfully')
+    );
 })
