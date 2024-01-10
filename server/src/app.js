@@ -14,11 +14,13 @@ app.use(express.urlencoded({ extended: true, limit: "20kb" }))
 app.use(cookieParser())
 
 // import routes
+import healthcheckRoutes from './routes/healthcheck.routes.js'
 import userRoutes from './routes/user.routes.js'
 import channelRoutes from './routes/channel.routes.js'
 import videoRoutes from './routes/video.routes.js'
 //routes config
 
+app.use("/api/v1/healthcheck", healthcheckRoutes)
 app.use("/api/v1/user", userRoutes)
 app.use("/api/v1/channel", channelRoutes)
 app.use("/api/v1/video", videoRoutes)
