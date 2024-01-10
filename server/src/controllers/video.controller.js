@@ -113,29 +113,7 @@ export const getVideoById = asyncHandler(async (req, res) => {
                 localField: '_id',
                 foreignField: 'video',
                 as: 'comments',
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: 'users',
-                            localField: 'owner',
-                            foreignField: '_id',
-                            as: 'owner',
-                            pipeline: [
-                                {
-                                    $project: {
-                                        fullName: 1,
-                                        userName: 1,
-                                        avatar: 1,
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                    {
-                        $unwind: '$owner',
-                    },
-                ],
-            },
+            }
         },
         {
             $lookup: {
@@ -143,19 +121,6 @@ export const getVideoById = asyncHandler(async (req, res) => {
                 localField: '_id',
                 foreignField: 'video',
                 as: 'likes',
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: 'users',
-                            localField: 'likedBy',
-                            foreignField: '_id',
-                            as: 'owner',
-                        },
-                    },
-                    {
-                        $unwind: '$owner',
-                    },
-                ],
             },
         },
         {
@@ -164,24 +129,10 @@ export const getVideoById = asyncHandler(async (req, res) => {
                 localField: '_id',
                 foreignField: 'video',
                 as: 'dislikes',
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: 'users',
-                            localField: 'disLikedBy',
-                            foreignField: '_id',
-                            as: 'owner',
-                        },
-                    },
-                    {
-                        $unwind: '$owner',
-                    },
-                ],
             },
         },
         {
             $addFields: {
-                comments: "$comments",
                 likeCount: { $size: '$likes' },
                 dislikeCount: { $size: '$dislikes' },
                 totalCommentCount: { $size: '$comments' },
@@ -200,10 +151,9 @@ export const getVideoById = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
                 owner: 1,
-                comments: 1,
                 likeCount: 1,
                 dislikeCount: 1,
-                totalCommentCount: 1,
+                totalCommentCount: 1
             },
         },
     ]);
@@ -478,4 +428,125 @@ export const deleteComment = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(new ApiResponse(200, '', 'Comment deleted successfully'));
+})
+
+export const toggleCommentLike = asyncHandler(async (req, res) => {
+    const { commentId } = req.params
+    const userId = req.user?._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+        throw new ApiError(404, 'Comment not found');
+    }
+
+    const existingLike = await Like.findOne({ comment: commentId, likedBy: userId });
+    const existingDislike = await DisLike.findOne({ comment: commentId, disLikedBy: userId });
+
+    if (existingLike) {
+        await existingLike.deleteOne({ _id: existingLike._id })
+        res.status(200).json(new ApiResponse(200, '', 'Comment like removed'));
+    } else {
+        if (existingDislike) {
+            await existingDislike.deleteOne({ _id: existingDislike._id });
+        }
+        const newLike = new Like({
+            comment: commentId,
+            likedBy: userId,
+        });
+
+        await newLike.save();
+
+        res.status(201).json(new ApiResponse(201, newLike, 'comment liked successfully'));
+    }
+})
+
+export const toggleCommentDisLike = asyncHandler(async (req, res) => {
+    const { commentId } = req.params
+    const userId = req.user?._id;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+        throw new ApiError(404, 'Comment not found');
+    }
+
+    const existingLike = await Like.findOne({ comment: commentId, likedBy: userId });
+    const existingDislike = await DisLike.findOne({ comment: commentId, disLikedBy: userId });
+
+    if (existingDislike) {
+        await existingDislike.deleteOne({ _id: existingDislike._id })
+        res.status(200).json(new ApiResponse(200, '', 'Comment dislike removed'));
+    } else {
+        if (existingLike) {
+            await existingLike.deleteOne({ _id: existingLike._id });
+        }
+        const newDisLike = new DisLike({
+            comment: commentId,
+            disLikedBy: userId,
+        });
+
+        await newDisLike.save();
+
+        res.status(201).json(new ApiResponse(201, newDisLike, 'comment disliked successfully'));
+    }
+})
+
+export const getVideoComments = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    const videoComments = await Comment.aggregate([
+        { $match: { video: new mongoose.Types.ObjectId(videoId) } },
+        {
+            $lookup: {
+                from: 'likes',
+                localField: '_id',
+                foreignField: 'comment',
+                as: 'likes',
+            },
+        },
+        {
+            $lookup: {
+                from: 'dislikes',
+                localField: '_id',
+                foreignField: 'comment',
+                as: 'dislikes',
+            },
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'ownerInfo',
+            },
+        },
+        {
+            $unwind: '$ownerInfo',
+        },
+        {
+            $addFields: {
+                likeCount: { $size: '$likes' },
+                dislikeCount: { $size: '$dislikes' },
+                ownerFullName: '$ownerInfo.fullName',
+                ownerUsername: '$ownerInfo.userName',
+                ownerAvatar: '$ownerInfo.avatar',
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                content: 1,
+                owner: 1,
+                createdAt: 1,
+                likeCount: 1,
+                dislikeCount: 1,
+                ownerFullName: 1,
+                ownerUsername: 1,
+                ownerAvatar: 1,
+            },
+        },
+    ]);
+
+    res.status(200).json(
+        new ApiResponse(200, videoComments, "Video comments fetched successfully")
+    );
 })
