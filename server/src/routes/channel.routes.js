@@ -2,7 +2,7 @@ import express from 'express'
 import { getAllFollowings, getChannelPlaylist, getChannelProfile, getChannelStats, getChannelTweets, getChannelVideos } from '../controllers/channel.controller.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 import { upload } from '../middlewares/multer.middleware.js'
-import { deleteVideo, getVideoById, togglePublishStatus, updateVideo, uploadNewVideo } from '../controllers/video.controller.js'
+import { deleteVideo, getLikedVideos, getVideoById, togglePublishStatus, updateVideo, uploadNewVideo } from '../controllers/video.controller.js'
 
 const router = express.Router()
 
@@ -18,5 +18,6 @@ router.get('/:username/playlists', getChannelPlaylist)
 router.get('/:username/tweets', getChannelTweets)
 router.get('/:username/followings', getAllFollowings)
 router.get('/stats', verifyJWT, getChannelStats)
+router.get('/likedVideos', verifyJWT, getLikedVideos)
 
 export default router

@@ -550,3 +550,64 @@ export const getVideoComments = asyncHandler(async (req, res) => {
         new ApiResponse(200, videoComments, "Video comments fetched successfully")
     );
 })
+
+export const getLikedVideos = asyncHandler(async (req, res) => {
+    const userId = req.user?._id;
+
+    const likedVideos = await Like.aggregate([
+        {
+            $match: { likedBy: new mongoose.Types.ObjectId(userId) }
+        },
+        {
+            $lookup: {
+                from: 'videos',
+                localField: 'video',
+                foreignField: '_id',
+                as: 'videoDetails',
+            },
+        },
+        {
+            $unwind: '$videoDetails',
+        },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'videoDetails.owner',
+                foreignField: '_id',
+                as: 'ownerInfo',
+            },
+        },
+        {
+            $unwind: '$ownerInfo',
+        },
+        {
+            $addFields: {
+                ownerFullName: '$ownerInfo.fullName',
+                ownerUsername: '$ownerInfo.userName',
+                ownerAvatar: '$ownerInfo.avatar',
+            },
+        },
+        {
+            $project: {
+                _id: '$videoDetails._id',
+                title: '$videoDetails.title',
+                description: '$videoDetails.description',
+                thumbnail: '$videoDetails.thumbnail',
+                videoFile: '$videoDetails.videoFile',
+                duration: '$videoDetails.duration',
+                views: '$videoDetails.views',
+                isPublished: '$videoDetails.isPublished',
+                createdAt: '$videoDetails.createdAt',
+                updatedAt: '$videoDetails.updatedAt',
+                owner: '$videoDetails.owner',
+                ownerFullName: 1,
+                ownerUsername: 1,
+                ownerAvatar: 1,
+            },
+        },
+    ]);
+
+    res.status(200).json(
+        new ApiResponse(200, likedVideos, 'Liked videos fetched successfully')
+    );
+})
