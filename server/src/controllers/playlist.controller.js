@@ -36,70 +36,60 @@ export const getPlaylistById = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: 'users',
-                localField: 'owner',
-                foreignField: '_id',
-                as: 'owner'
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
             },
         },
         {
-            $unwind: '$owner'
+            $unwind: "$owner",
         },
         {
             $lookup: {
-                from: 'videos',
-                localField: 'videos',
-                foreignField: '_id',
-                as: 'videos',
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos",
                 pipeline: [
                     {
                         $lookup: {
-                            from: 'users',
-                            localField: 'owner',
-                            foreignField: '_id',
-                            as: 'owner'
-                        }
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                        },
                     },
                     {
                         $addFields: {
-                            ownerName: { $arrayElemAt: ['$owner.fullName', 0] },
+                            ownerName: {
+                                $arrayElemAt: [
+                                    "$owner.fullName",
+                                    0,
+                                ],
+                            }
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            title: 1,
+                            thumbnail: 1,
+                            duration: 1,
+                            views: 1,
+                            createdAt: 1,
+                            ownerName: 1,
                         }
-                    }
-                ]
-            }
-        },
-        {
-            $unwind: {
-                path: '$videos',
-                preserveNullAndEmptyArrays: true,
+                    },
+                ],
             },
         },
+
         {
             $addFields: {
-                createdBy: '$owner.fullName'
-            }
-        },
-        {
-            $group: {
-                _id: '$_id',
-                name: { $first: '$name' },
-                description: { $first: '$description' },
-                createdBy: { $first: '$createdBy' },
-                createdAt: { $first: '$createdAt' },
-                updatedAt: { $first: '$updatedAt' },
-                totalVideos: { $sum: 1 },
-                totalViews: { $sum: { $ifNull: ['$videos.views', 0] } },
-                videos: {
-                    $push: {
-                        _id: '$videos._id',
-                        title: '$videos.title',
-                        thumbnail: '$videos.thumbnail',
-                        duration: '$videos.duration',
-                        views: '$videos.views',
-                        created: '$videos.createdAt',
-                        ownerName: '$videos.ownerName',
-                    },
-                },
+                createdBy: "$owner.fullName",
+                totalVideos: { $size: '$videos' },
+                totalViews: { $sum: '$videos.views' }
             },
         },
         {
@@ -111,10 +101,9 @@ export const getPlaylistById = asyncHandler(async (req, res) => {
                 updatedAt: 1,
                 totalVideos: 1,
                 totalViews: 1,
-                videos: 1
-            }
-        }
-
+                videos: 1,
+            },
+        },
     ]);
 
     if (!playlistDetails.length) {
@@ -130,26 +119,14 @@ export const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
     const updatedPlaylist = await Playlist.findOneAndUpdate(
         { _id: playlistId, owner: userId },
-        [
-            {
-                $set: {
-                    videos: {
-                        $cond: {
-                            if: { $isArray: '$videos' },
-                            then: {
-                                $concatArrays: [
-                                    [new mongoose.Types.ObjectId(videoId)],
-                                    {
-                                        $setDifference: ['$videos', [new mongoose.Types.ObjectId(videoId)]],
-                                    },
-                                ],
-                            },
-                            else: [new mongoose.Types.ObjectId(videoId)],
-                        },
-                    },
+        {
+            $push: {
+                videos: {
+                    $each: [videoId],
+                    $position: 0,
                 },
             },
-        ],
+        },
         { new: true }
     );
 
@@ -164,28 +141,16 @@ export const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params;
     const userId = req.user?._id;
 
-    const playlist = await Playlist.findOne({
-        _id: playlistId,
-        videos: videoId,
-        owner: userId,
-    });
-
-    if (!playlist) {
-        throw new ApiError(404, 'Video not found in the playlist');
-    }
-
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
-        playlistId,
+        { _id: playlistId, videos: videoId, owner: userId },
         {
             $pull: { videos: videoId },
         },
         { new: true }
     )
-        .populate('videos', '_id title thumbnail duration views createdAt')
-        .populate('owner', 'fullName');
 
     if (!updatedPlaylist) {
-        throw new ApiError(500, 'Error removing video from the playlist');
+        throw new ApiError(500, 'Video not found in the playlist');
     }
 
     res.status(200).json(new ApiResponse(200, updatedPlaylist, 'Video removed from playlist successfully'));
