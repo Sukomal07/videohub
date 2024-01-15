@@ -56,11 +56,14 @@ VideoHub is a web application that allows users to create channels, upload video
 
 6. Start the application:
 
+   - Go to server `cd server` run
+   - Go to client `cd client` run
+
    ```bash
    npm run dev
    ```
 
-   The application should now be running at `http://localhost:8080`.
+   The application should now be running at `http://localhost:5173`.
 
 ## Contributing
 
