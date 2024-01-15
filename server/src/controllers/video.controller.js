@@ -94,6 +94,11 @@ export const getAllVideo = asyncHandler(async (req, res) => {
                 ownerName: '$ownerInfo.fullName',
                 ownerAvatar: '$ownerInfo.avatar',
             }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
         }
     ]);
 
