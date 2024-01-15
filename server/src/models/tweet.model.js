@@ -4,7 +4,7 @@ import aggregatePaginate from 'mongoose-aggregate-paginate-v2'
 const tweetSchema = new Schema({
     content: {
         type: String,
-        required: [true, 'comment is required']
+        required: [true, 'content is required']
     },
     owner: {
         type: Schema.Types.ObjectId,

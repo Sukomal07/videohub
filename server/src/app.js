@@ -19,6 +19,7 @@ import userRoutes from './routes/user.routes.js'
 import channelRoutes from './routes/channel.routes.js'
 import videoRoutes from './routes/video.routes.js'
 import playlistRoutes from './routes/playlist.routes.js'
+import tweetRoutes from './routes/tweet.routes.js'
 
 //routes config
 app.use("/api/v1/healthcheck", healthcheckRoutes)
@@ -26,6 +27,7 @@ app.use("/api/v1/user", userRoutes)
 app.use("/api/v1/channel", channelRoutes)
 app.use("/api/v1/video", videoRoutes)
 app.use("/api/v1/playlist", playlistRoutes)
+app.use("/api/v1/tweet", tweetRoutes)
 
 app.all("*", (req, res) => {
     res.status(404).json({
