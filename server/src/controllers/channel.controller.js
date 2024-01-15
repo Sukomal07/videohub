@@ -210,6 +210,13 @@ export const getChannelTweets = asyncHandler(async (req, res) => {
             $addFields: {
                 tweets: "$tweets"
             }
+        },
+        {
+            $project: {
+                fullName: 1,
+                avatar: 1,
+                tweets: 1
+            }
         }
     ])
 
@@ -218,7 +225,7 @@ export const getChannelTweets = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, channel[0].tweets, 'Tweets fetched successfully')
+        new ApiResponse(200, channel[0], 'Tweets fetched successfully')
     )
 })
 
