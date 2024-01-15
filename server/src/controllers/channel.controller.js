@@ -120,6 +120,11 @@ export const getChannelVideos = asyncHandler(async (req, res) => {
                 foreignField: 'owner',
                 as: 'videos',
                 pipeline: [
+                    {
+                        $match: {
+                            isPublished: true,
+                        },
+                    },
                     sortStage,
                     {
                         $project: {
