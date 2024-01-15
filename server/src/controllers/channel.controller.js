@@ -198,11 +198,35 @@ export const getChannelTweets = asyncHandler(async (req, res) => {
                 as: 'tweets',
                 pipeline: [
                     {
+                        $lookup: {
+                            from: "likes",
+                            localField: "_id",
+                            foreignField: "tweet",
+                            as: "likes",
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "dislikes",
+                            localField: "_id",
+                            foreignField: "tweet",
+                            as: "dislikes",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            likeCount: { $size: "$likes" },
+                            dislikeCount: { $size: "$dislikes" },
+                        },
+                    },
+                    {
                         $project: {
                             content: 1,
-                            createdAt: 1
-                        }
-                    }
+                            createdAt: 1,
+                            likeCount: 1,
+                            dislikeCount: 1
+                        },
+                    },
                 ]
             }
         },
