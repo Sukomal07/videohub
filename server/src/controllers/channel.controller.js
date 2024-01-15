@@ -89,9 +89,22 @@ export const getChannelProfile = asyncHandler(async (req, res) => {
 
 export const getChannelVideos = asyncHandler(async (req, res) => {
     const { username } = req.params;
+    const { latest, popular, oldest } = req.query;
 
     if (!username) {
         throw new ApiError(400, 'username is required')
+    }
+
+    let sortStage;
+    if (latest) {
+        sortStage = { $sort: { createdAt: -1 } }; // Sort by latest
+    } else if (popular) {
+        sortStage = { $sort: { views: -1 } }; // Sort by most views
+    } else if (oldest) {
+        sortStage = { $sort: { createdAt: 1 } }; // Sort by oldest
+    } else {
+        // Default sorting if no option is provided
+        sortStage = { $sort: { createdAt: -1 } };
     }
 
     const channel = await User.aggregate([
@@ -107,11 +120,13 @@ export const getChannelVideos = asyncHandler(async (req, res) => {
                 foreignField: 'owner',
                 as: 'videos',
                 pipeline: [
+                    sortStage,
                     {
                         $project: {
                             title: 1,
                             thumbnail: 1,
                             videoFile: 1,
+                            duration: 1,
                             views: 1,
                             createdAt: 1
                         }
@@ -120,8 +135,8 @@ export const getChannelVideos = asyncHandler(async (req, res) => {
             }
         },
         {
-            $addFields: {
-                videos: "$videos"
+            $project: {
+                videos: 1
             }
         }
     ])
@@ -131,7 +146,7 @@ export const getChannelVideos = asyncHandler(async (req, res) => {
     }
 
     res.status(200).json(
-        new ApiResponse(200, channel[0].videos, 'videos fetched successfully')
+        new ApiResponse(200, channel[0], 'videos fetched successfully')
     )
 })
 
